@@ -2,11 +2,27 @@
 
 #include <Arduino.h>
 
-#include "Connectivity.h"
+#include "AudioHandler.h"
+#include "Config.h"
+#include "DisplayHandler.h"
+#include "TouchHandler.h"
+// #include "Connectivity.h" // Nanti kita aktifkan
 
 class Siochi {
  private:
-  Connectivity connectivity;
+  SystemState currentState;
+
+  DisplayHandler display;
+  TouchHandler touch;
+  AudioHandler audio;
+  // Connectivity connectivity;
+
+  bool wasTouched;
+
+  bool isAwake;
+  unsigned long lastInteractionTime;
+  unsigned long moodTimer;
+  FaceState currentFaceState;
 
  public:
   Siochi();

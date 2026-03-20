@@ -54,8 +54,6 @@ Connectivity::Connectivity() {
 }
 
 void Connectivity::setup() {
-  pinMode(LED_PIN, OUTPUT);
-
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
   Serial.println("Status Awal: WiFi OFF");
@@ -152,14 +150,6 @@ bool Connectivity::pingMobileApp() {
 
   Serial.println("Ping Gagal. Tidak ada respon di port " + String(MOBILE_APP_PORT));
   return false;
-}
-
-void Connectivity::setLed(bool on) {
-#ifdef LED_ACTIVE_LOW
-  digitalWrite(LED_PIN, on ? LOW : HIGH);
-#else
-  digitalWrite(LED_PIN, on ? HIGH : LOW);
-#endif
 }
 
 void Connectivity::connectToWiFi() {
