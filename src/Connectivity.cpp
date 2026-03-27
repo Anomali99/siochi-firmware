@@ -38,8 +38,6 @@ class Callbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* pCharacteristic) {
     String rxValue = String(pCharacteristic->getValue().c_str());
     if (rxValue.length() > 0 && pSiochi) {
-      Serial.print("<< Received Raw: ");
-      Serial.println(rxValue);
       pSiochi->incomingConfig = rxValue;
       pSiochi->newConfigReceived = true;
     }
@@ -50,6 +48,8 @@ Connectivity::Connectivity() {
   deviceConnected = false;
   oldDeviceConnected = false;
   newConfigReceived = false;
+  hasNewNotification = false;
+  wifiEnabled = true;
   pSiochi = this;
 }
 
@@ -58,7 +58,6 @@ void Connectivity::setup() {
   WiFi.mode(WIFI_OFF);
   Serial.println("Status Awal: WiFi OFF");
 
-  setLed(false);
   Serial.println("Menginisialisasi BLE...");
 
   BLEDevice::init(DEVICE_NAME);
@@ -103,21 +102,55 @@ void Connectivity::notifyStatus(String status) {
 }
 
 void Connectivity::parseConfig(String data) {
-  int p1 = data.indexOf('|');
-  int p2 = data.indexOf('|', p1 + 1);
+  if (data.startsWith("S1|")) {
+    String payload = data.substring(3);
+    if (payload == "BLE_ONLY") {
+      wifiEnabled = false;
+      Serial.println(">> Pengaturan: Mode BLE ONLY (WiFi OFF)");
+    } else {
+      wifiEnabled = true;
+      int p1 = payload.indexOf('|');
+      int p2 = payload.indexOf('|', p1 + 1);
+      if (p1 > 0 && p2 > 0) {
+        targetSSID = payload.substring(0, p1);
+        targetPass = payload.substring(p1 + 1, p2);
+        controllerIP = payload.substring(p2 + 1);
+        controllerIP.trim();
+        Serial.println(">> Pengaturan: Mode WiFi (" + targetSSID + ")");
+      }
+    }
+  } else if (data.startsWith("S2|")) {
+    // S2|Mode|WA|SMS|CALL (e.g., S2|0|1|0|1)
+    int p1 = data.indexOf('|', 3);
+    int p2 = data.indexOf('|', p1 + 1);
+    int p3 = data.indexOf('|', p2 + 1);
 
-  if (p1 > 0 && p2 > 0) {
-    targetSSID = data.substring(0, p1);
-    targetPass = data.substring(p1 + 1, p2);
-    controllerIP = data.substring(p2 + 1);
-    controllerIP.trim();
+    if (p1 > 0 && p2 > 0 && p3 > 0) {
+      notifMode = data.substring(3, p1).toInt();
+      notifWaOn = data.substring(p1 + 1, p2) == "1";
+      notifSmsOn = data.substring(p2 + 1, p3) == "1";
+      notifCallOn = data.substring(p3 + 1) == "1";
+      Serial.printf(">> Pengaturan Notif: Mode=%d, WA=%d, SMS=%d, CALL=%d\n", notifMode, notifWaOn, notifSmsOn, notifCallOn);
+    }
+  } else if (data.startsWith("S3|")) {
+    navMode = data.substring(3).toInt();
+    Serial.printf(">> Pengaturan Navigasi: Mode=%d\n", navMode);
+  } else if (data.startsWith("N1|") || data.startsWith("N2|") || data.startsWith("N3|")) {
+    String type = data.substring(0, 2);
 
-    Serial.println("--- Config Parsed ---");
-    Serial.println("SSID: " + targetSSID);
-    Serial.println("IP Target: " + controllerIP);
-  } else {
-    Serial.println("Format Data Salah!");
-    notifyStatus("ERR:FORMAT");
+    if (type == "N1" && !notifWaOn) return;
+    if (type == "N2" && !notifSmsOn) return;
+    if (type == "N3" && !notifCallOn) return;
+
+    String payload = data.substring(3);
+    int p1 = payload.indexOf('|');
+    if (p1 > 0) {
+      notifType = type;
+      notifSender = payload.substring(0, p1);
+      notifMessage = payload.substring(p1 + 1);
+      hasNewNotification = true;
+      Serial.println(">> NOTIF MASUK [" + type + "] " + notifSender + ": " + notifMessage);
+    }
   }
 }
 
@@ -179,13 +212,11 @@ void Connectivity::connectToWiFi() {
     delay(500);
     Serial.print(".");
     ledState = !ledState;
-    setLed(ledState);
     retry++;
   }
   Serial.println("");
 
   if (WiFi.status() == WL_CONNECTED) {
-    setLed(true);
     Serial.println("WiFi Connected! IP: " + WiFi.localIP().toString());
 
     notifyStatus("STATUS:WIFI_OK|" + WiFi.localIP().toString());
@@ -200,7 +231,6 @@ void Connectivity::connectToWiFi() {
     }
   } else {
     Serial.println("WiFi Gagal Terhubung.");
-    setLed(false);
     notifyStatus("STATUS:WIFI_FAILED");
   }
 }
@@ -209,7 +239,7 @@ void Connectivity::loop() {
   if (newConfigReceived) {
     newConfigReceived = false;
     parseConfig(incomingConfig);
-    if (targetSSID.length() > 0) {
+    if (incomingConfig.startsWith("S1|") && wifiEnabled && targetSSID.length() > 0) {
       connectToWiFi();
     }
   }

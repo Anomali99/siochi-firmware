@@ -13,25 +13,31 @@ class Connectivity {
  private:
   BLEServer* pServer;
   BLECharacteristic* pTxCharacteristic;
-  bool oldDeviceConnected;
-
   String targetSSID;
   String targetPass;
   String controllerIP;
   String connectionMode;
-
+  bool oldDeviceConnected;
   void parseConfig(String data);
   void connectToWiFi();
   bool pingMobileApp();
-  void setLed(bool on);
 
  public:
+  String incomingConfig;
+  String notifType;
+  String notifSender;
+  String notifMessage;
+  bool deviceConnected;
+  bool newConfigReceived;
+  bool wifiEnabled;
+  bool notifWaOn;
+  bool notifSmsOn;
+  bool notifCallOn;
+  bool hasNewNotification;
+  int notifMode;
+  int navMode;
   Connectivity();
   void setup();
   void loop();
   void notifyStatus(String status);
-
-  bool deviceConnected;
-  bool newConfigReceived;
-  String incomingConfig;
 };

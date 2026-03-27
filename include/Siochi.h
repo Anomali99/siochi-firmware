@@ -4,25 +4,22 @@
 
 #include "AudioHandler.h"
 #include "Config.h"
+#include "Connectivity.h"
 #include "DisplayHandler.h"
 #include "TouchHandler.h"
-// #include "Connectivity.h" // Nanti kita aktifkan
 
 class Siochi {
  private:
   SystemState currentState;
-
   DisplayHandler display;
   TouchHandler touch;
   AudioHandler audio;
-  // Connectivity connectivity;
-
-  bool wasTouched;
-
-  bool isAwake;
+  Connectivity connectivity;
+  FaceState currentFaceState;
   unsigned long lastInteractionTime;
   unsigned long moodTimer;
-  FaceState currentFaceState;
+  bool wasTouched;
+  bool isAwake;
 
  public:
   Siochi();

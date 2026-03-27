@@ -19,7 +19,7 @@ void Siochi::setup() {
   touch.setup();
   audio.setup();
 
-  // connectivity.setup(); // Disembunyikan sementara
+  connectivity.setup();
 
   Serial.println("Siochi Siap dalam Mode OFFLINE.");
 
@@ -30,6 +30,24 @@ void Siochi::setup() {
 }
 
 void Siochi::loop() {
+  connectivity.loop();
+
+  if (connectivity.hasNewNotification) {
+    connectivity.hasNewNotification = false;
+
+    String appName = "Notif";
+    if (connectivity.notifType == "N1")
+      appName = "WhatsApp";
+    else if (connectivity.notifType == "N2")
+      appName = "SMS";
+    else if (connectivity.notifType == "N3")
+      appName = "Telepon";
+
+    display.showNotification(appName, connectivity.notifSender, connectivity.notifMessage, connectivity.notifMode);
+
+    audio.playBeep();
+  }
+
   bool isTouchedNow = touch.isTouched();
   bool isHearingSoundNow = audio.isHearingSound();
   unsigned long currentMillis = millis();

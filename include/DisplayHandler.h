@@ -10,7 +10,6 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-// Status Wajah
 enum FaceState {
   FACE_NEUTRAL,
   FACE_HAPPY,
@@ -26,20 +25,23 @@ enum FaceState {
 class DisplayHandler {
  private:
   Adafruit_SSD1306 display;
-
+  FaceState currentFace;
+  uint8_t animStep;
+  String nApp, nSender, nMessage;
   unsigned long lastBlinkTime;
   unsigned long lastFrameTime;
   unsigned long lastAnimTime;
   unsigned long expressionStartTime;
+  unsigned long notifStartTime;
   bool isBlinking;
-
-  FaceState currentFace;
-  uint8_t animStep;
+  bool isShowingNotif;
+  int nMode;
 
  public:
   DisplayHandler();
+  FaceState getCurrentFace();
   void setup();
   void setFace(FaceState face);
-  FaceState getCurrentFace();
   void update();
+  void showNotification(String app, String sender, String message, int mode);
 };
